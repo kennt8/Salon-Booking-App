@@ -1,0 +1,69 @@
+import { Alert } from "react-native";
+import {
+  collection,
+  doc,
+  runTransaction,
+  serverTimestamp,
+} from "firebase/firestore";
+
+import { db } from "./firebaseConfig";
+import { createNotification } from "./notificationService";
+
+export async function markBookingPaidCash({ bookingId, staffId, staffEmail }) {
+  if (!bookingId) throw new Error("Missing bookingId");
+  if (!staffId) throw new Error("Missing staffId");
+
+  const bookingRef = doc(db, "bookings", bookingId);
+  const paymentRef = doc(collection(db, "payments"));
+
+  try {
+    let bookingForNotification = null;
+
+    await runTransaction(db, async (tx) => {
+      const bookingSnap = await tx.get(bookingRef);
+      if (!bookingSnap.exists()) throw new Error("Booking not found.");
+
+      const booking = bookingSnap.data();
+      bookingForNotification = booking;
+
+      if (booking.paymentStatus === "paid") {
+        throw new Error("This booking is already marked as paid.");
+      }
+
+      tx.set(paymentRef, {
+        bookingId,
+        customerId: booking.customerId ?? null,
+        amount: booking.price ?? null,
+        currency: "PHP",
+        method: "cash", // CASH ONLY
+        status: "paid",
+        markedBy: staffId,
+        markedByEmail: staffEmail ?? null,
+        markedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      });
+
+      tx.update(bookingRef, {
+        paymentStatus: "paid",
+        paymentMethod: "cash",
+        paymentId: paymentRef.id,
+        paidAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    });
+
+    await createNotification({
+      toUserId: bookingForNotification?.customerId,
+      title: "Payment received",
+      body: `Cash payment marked as PAID for ${bookingForNotification?.serviceName ?? "your booking"}.`,
+      type: "payment_paid",
+      data: { bookingId, method: "cash" },
+    });
+
+    return paymentRef.id;
+  } catch (err) {
+    Alert.alert("Payment update failed", err?.message ?? "Please try again.");
+    throw err;
+  }
+}
+
