@@ -25,13 +25,6 @@ export async function servicesHasAny() {
 export async function seedSampleServices() {
   const sample = [
     {
-      name: "Haircut",
-      description: "Classic cut and style",
-      durationMinutes: 30,
-      price: 15,
-      active: true,
-    },
-    {
       name: "Beard Trim",
       description: "Shape and clean-up",
       durationMinutes: 15,
@@ -39,8 +32,15 @@ export async function seedSampleServices() {
       active: true,
     },
     {
+      name: "Hair Cut",
+      description: "Classic cut and style",
+      durationMinutes: 30,
+      price: 15,
+      active: true,
+    },
+    {
       name: "Haircut + Beard",
-      description: "Full grooming package",
+      description: "Full groooming package",
       durationMinutes: 45,
       price: 20,
       active: true,
