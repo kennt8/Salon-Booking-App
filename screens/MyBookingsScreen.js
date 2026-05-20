@@ -153,6 +153,26 @@ export default function MyBookingsScreen({ navigation, user }) {
               <Text style={styles.cardText}>
                 Payment: {item.paymentStatus === "paid" ? "PAID" : "UNPAID (cash)"}
               </Text>
+              {item.paymentProofUrl && item.paymentStatus !== "paid" && (
+                <Text style={styles.cardText}>
+                  Proof: submitted (pending staff review)
+                </Text>
+              )}
+
+              {item.paymentStatus !== "paid" && (
+                <View style={styles.actionRow}>
+                  <AppButton
+                    title={
+                      item.paymentProofUrl ? "Replace proof" : "Upload payment proof"
+                    }
+                    variant="secondary"
+                    onPress={() =>
+                      navigation.navigate("UploadPaymentProof", { booking: item })
+                    }
+                    style={styles.flex1}
+                  />
+                </View>
+              )}
 
               {canCancel(item.status) && (
                 <View style={styles.actionRow}>

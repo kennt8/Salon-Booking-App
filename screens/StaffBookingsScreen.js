@@ -3,6 +3,9 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
+  Linking,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -40,6 +43,19 @@ function BookingCard({ item, onMarkPaid, onSetStatus }) {
       <Text style={styles.text}>
         Amount: ₱{item.price ?? "-"} • Payment: {isPaid ? "PAID" : "UNPAID"}
       </Text>
+
+      {!!item.paymentProofUrl && !isPaid && (
+        <View style={styles.proofWrap}>
+          <Text style={styles.proofLabel}>Payment proof (customer)</Text>
+          <Pressable onPress={() => Linking.openURL(item.paymentProofUrl)}>
+            <Image
+              source={{ uri: item.paymentProofUrl }}
+              style={styles.proofImage}
+            />
+          </Pressable>
+          <Text style={styles.proofHint}>Tap image to open full size</Text>
+        </View>
+      )}
 
       {!isPaid && (
         <View style={{ marginTop: 12 }}>
@@ -211,6 +227,15 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   text: { marginTop: 6, color: "#333" },
+  proofWrap: { marginTop: 12 },
+  proofLabel: { fontWeight: "800", color: "#111", marginBottom: 6 },
+  proofImage: {
+    width: "100%",
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: "#EEE",
+  },
+  proofHint: { marginTop: 4, color: "#666", fontSize: 12, fontWeight: "600" },
   actionsRow: { flexDirection: "row", gap: 10, marginTop: 10 },
   flex1: { flex: 1 },
   empty: { padding: 24, alignItems: "center" },

@@ -35,8 +35,9 @@ export async function markBookingPaidCash({ bookingId, staffId, staffEmail }) {
         customerId: booking.customerId ?? null,
         amount: booking.price ?? null,
         currency: "PHP",
-        method: "cash", // CASH ONLY
+        method: "cash",
         status: "paid",
+        proofUrl: booking.paymentProofUrl ?? null,
         markedBy: staffId,
         markedByEmail: staffEmail ?? null,
         markedAt: serverTimestamp(),
@@ -67,3 +68,45 @@ export async function markBookingPaidCash({ bookingId, staffId, staffEmail }) {
   }
 }
 
+/**
+ * Customer uploads proof of payment (receipt/screenshot). Staff can review it
+ * before marking the booking as paid.
+ */
+export async function submitPaymentProof({
+  bookingId,
+  customerId,
+  proofUrl,
+}) {
+  if (!bookingId) throw new Error("Missing bookingId");
+  if (!customerId) throw new Error("Missing customerId");
+  if (!proofUrl) throw new Error("Missing proof URL");
+
+  const bookingRef = doc(db, "bookings", bookingId);
+
+  try {
+    await runTransaction(db, async (tx) => {
+      const bookingSnap = await tx.get(bookingRef);
+      if (!bookingSnap.exists()) throw new Error("Booking not found.");
+
+      const booking = bookingSnap.data();
+      if (booking.customerId !== customerId) {
+        throw new Error("You can only upload proof for your own booking.");
+      }
+      if (booking.paymentStatus === "paid") {
+        throw new Error("This booking is already paid.");
+      }
+
+      tx.update(bookingRef, {
+        paymentProofUrl: proofUrl,
+        paymentProofStatus: "pending",
+        paymentProofSubmittedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    });
+
+    return bookingId;
+  } catch (err) {
+    Alert.alert("Upload failed", err?.message ?? "Please try again.");
+    throw err;
+  }
+}

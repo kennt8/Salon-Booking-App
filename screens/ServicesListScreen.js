@@ -98,6 +98,12 @@ export default function ServicesListScreen({ navigation, userRole }) {
           onPress={() => navigation.navigate("MyBookings")}
           style={styles.actionBtn}
         />
+        <AppButton
+          title="Profile"
+          variant="secondary"
+          onPress={() => navigation.navigate("Profile")}
+          style={styles.actionBtn}
+        />
       </View>
 
       {canSeed && (

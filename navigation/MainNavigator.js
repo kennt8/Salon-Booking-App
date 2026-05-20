@@ -7,6 +7,8 @@ import StaffBookingsScreen from "../screens/StaffBookingsScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
 import LeaveReviewScreen from "../screens/LeaveReviewScreen";
 import ServiceReviewsScreen from "../screens/ServiceReviewsScreen";
+import ProfileScreen from "../screens/ProfileScreen";
+import UploadPaymentProofScreen from "../screens/UploadPaymentProofScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -32,6 +34,15 @@ export default function MainNavigator({ user, role }) {
       </Stack.Screen>
       <Stack.Screen name="ServiceReviews" options={{ title: "Reviews" }}>
         {(props) => <ServiceReviewsScreen {...props} />}
+      </Stack.Screen>
+      <Stack.Screen name="Profile" options={{ title: "Profile" }}>
+        {(props) => <ProfileScreen {...props} user={user} />}
+      </Stack.Screen>
+      <Stack.Screen
+        name="UploadPaymentProof"
+        options={{ title: "Payment proof" }}
+      >
+        {(props) => <UploadPaymentProofScreen {...props} user={user} />}
       </Stack.Screen>
       {role === "staff" && (
         <Stack.Screen name="StaffBookings" options={{ title: "Manage Bookings" }}>
