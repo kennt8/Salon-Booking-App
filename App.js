@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import AuthStack from "./navigation/AppNavigator";
 import { auth } from "./services/firebase/firebaseConfig";
@@ -43,9 +44,11 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      {user ? <MainNavigator user={user} role={role} /> : <AuthStack />}
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        {user ? <MainNavigator user={user} role={role} /> : <AuthStack />}
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
 

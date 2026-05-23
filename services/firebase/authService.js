@@ -12,6 +12,7 @@ export async function registerWithEmail({
   email,
   password,
   role = "customer",
+  fullName = "",
 }) {
   const normalizedRole = role === "staff" ? "staff" : "customer";
 
@@ -23,6 +24,7 @@ export async function registerWithEmail({
       {
         uid: cred.user.uid,
         email: cred.user.email,
+        fullName: fullName.trim() || null,
         role: normalizedRole,
         createdAt: serverTimestamp(),
       },

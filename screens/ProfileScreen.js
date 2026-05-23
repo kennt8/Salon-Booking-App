@@ -12,6 +12,7 @@ import AppButton from "../components/AppButton";
 import AppHeader from "../components/AppHeader";
 import ImagePickerField from "../components/ImagePickerField";
 import { isCloudinaryConfigured } from "../config/cloudinary";
+import { logout } from "../services/firebase/authService";
 import { uploadProfilePhoto } from "../services/cloudinary/uploadService";
 import { getUserProfile, updateUserPhotoUrl } from "../services/firebase/userService";
 import { pickImageFromLibrary, takePhotoWithCamera } from "../utils/pickImage";
@@ -134,6 +135,13 @@ export default function ProfileScreen({ user }) {
           style={{ marginTop: 12 }}
         />
       </View>
+
+      <AppButton
+        title="Log Out"
+        variant="secondary"
+        onPress={logout}
+        style={styles.logoutBtn}
+      />
     </View>
   );
 }
@@ -173,5 +181,10 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     fontWeight: "700",
+  },
+  logoutBtn: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 24,
   },
 });

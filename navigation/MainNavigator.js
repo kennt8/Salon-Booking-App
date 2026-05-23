@@ -15,12 +15,12 @@ const Stack = createNativeStackNavigator();
 export default function MainNavigator({ user, role }) {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="Services" options={{ title: "Services" }}>
+      <Stack.Screen name="Services" options={{ headerShown: false }}>
         {(props) => (
           <ServicesListScreen {...props} user={user} userRole={role} />
         )}
       </Stack.Screen>
-      <Stack.Screen name="CreateBooking" options={{ title: "Create Booking" }}>
+      <Stack.Screen name="CreateBooking" options={{ headerShown: false }}>
         {(props) => <CreateBookingScreen {...props} user={user} />}
       </Stack.Screen>
       <Stack.Screen name="MyBookings" options={{ title: "My Bookings" }}>

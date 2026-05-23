@@ -1,32 +1,43 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 
+import { colors, radii } from "../constants/theme";
+
 export default function AppButton({
   title,
   onPress,
-  variant = "primary", // primary | secondary | ghost
+  variant = "primary",
   loading = false,
   disabled = false,
   style,
 }) {
   const isDisabled = disabled || loading;
-  const v =
+
+  const variantStyle =
     variant === "secondary"
       ? styles.secondary
-      : variant === "ghost"
-        ? styles.ghost
-        : styles.primary;
+      : variant === "yellow"
+        ? styles.yellow
+        : variant === "ghost"
+          ? styles.ghost
+          : styles.primary;
 
   const textStyle =
-    variant === "primary" ? styles.primaryText : styles.secondaryText;
+    variant === "yellow"
+      ? styles.yellowText
+      : variant === "primary"
+        ? styles.primaryText
+        : styles.secondaryText;
 
   return (
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
-      style={[styles.base, v, isDisabled && styles.disabled, style]}
+      style={[styles.base, variantStyle, isDisabled && styles.disabled, style]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "primary" ? "#fff" : "#111"} />
+        <ActivityIndicator
+          color={variant === "primary" ? colors.white : colors.text}
+        />
       ) : (
         <Text style={[styles.textBase, textStyle]}>{title}</Text>
       )}
@@ -36,22 +47,23 @@ export default function AppButton({
 
 const styles = StyleSheet.create({
   base: {
-    height: 48,
-    borderRadius: 14,
+    minHeight: 52,
+    borderRadius: radii.pill,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 14,
+    paddingHorizontal: 20,
   },
-  primary: { backgroundColor: "#111" },
+  primary: { backgroundColor: colors.primary },
+  yellow: { backgroundColor: colors.accent },
   secondary: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: "#E6E6E6",
+    borderColor: colors.border,
   },
   ghost: { backgroundColor: "transparent" },
   disabled: { opacity: 0.6 },
-  textBase: { fontWeight: "800", letterSpacing: 0.2 },
-  primaryText: { color: "#fff" },
-  secondaryText: { color: "#111" },
+  textBase: { fontWeight: "800", fontSize: 16 },
+  primaryText: { color: colors.white },
+  yellowText: { color: colors.text },
+  secondaryText: { color: colors.text },
 });
-

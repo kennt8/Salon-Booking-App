@@ -1,37 +1,48 @@
 import { useMemo, useState } from "react";
 import {
   Alert,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 import AppButton from "../components/AppButton";
-import AppHeader from "../components/AppHeader";
+import { colors } from "../constants/theme";
 import { createBooking } from "../services/firebase/bookingService";
+import { formatPeso } from "../utils/formatPrice";
+import {
+  BOOKING_TIME_SLOTS,
+  applySlotToDate,
+  buildDateOptions,
+  formatDayLabel,
+  formatMonthYear,
+  formatSlotLabel,
+  isSameDay,
+  slotKey,
+} from "../utils/timeSlots";
 
 export default function CreateBookingScreen({ route, navigation, user }) {
   const service = route?.params?.service;
+  const insets = useSafeAreaInsets();
 
-  const [date, setDate] = useState(() => {
-    const d = new Date();
-    d.setSeconds(0);
-    d.setMilliseconds(0);
-    d.setMinutes(Math.ceil(d.getMinutes() / 15) * 15);
-    return d;
-  });
-  const [showDate, setShowDate] = useState(false);
-  const [showTime, setShowTime] = useState(false);
+  const dateOptions = useMemo(() => buildDateOptions(14), []);
+  const [selectedDate, setSelectedDate] = useState(() => dateOptions[0]);
+  const [selectedSlot, setSelectedSlot] = useState(BOOKING_TIME_SLOTS[2]);
   const [submitting, setSubmitting] = useState(false);
 
   const duration = useMemo(() => service?.durationMinutes ?? 30, [service]);
+  const price = service?.price ?? 0;
 
-  const friendly = useMemo(() => {
-    return date.toLocaleString();
-  }, [date]);
+  const startAt = useMemo(
+    () => applySlotToDate(selectedDate, selectedSlot),
+    [selectedDate, selectedSlot]
+  );
 
-  async function onCreate() {
+  async function onContinue() {
     if (!service?.id) {
       Alert.alert("Missing service", "Please go back and choose a service.");
       return;
@@ -40,128 +51,235 @@ export default function CreateBookingScreen({ route, navigation, user }) {
 
     setSubmitting(true);
     try {
-      await createBooking({
+      const bookingId = await createBooking({
         customerId: user.uid,
         customerEmail: user.email,
         serviceId: service.id,
         serviceName: service.name,
         durationMinutes: duration,
         price: service.price ?? null,
-        startAt: date,
+        startAt,
       });
-      Alert.alert("Booking created", "Your booking is now pending.");
-      navigation.navigate("MyBookings");
+      navigation.navigate("UploadPaymentProof", {
+        booking: {
+          id: bookingId,
+          serviceName: service.name,
+          price: service.price,
+          startAt,
+        },
+      });
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <View style={styles.container}>
-      <AppHeader title="Create booking" subtitle="Pick a time that works for you" />
-
-      <View style={styles.card}>
-        <Text style={styles.label}>Service</Text>
-        <Text style={styles.value}>{service?.name ?? "Unknown"}</Text>
-        <Text style={styles.small}>
-          Duration: {duration} min • Price: ₱{service?.price ?? "-"}
-        </Text>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Select Date & Time</Text>
+        <View style={styles.headerSpacer} />
       </View>
+      <View style={styles.headerDivider} />
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Start time</Text>
-        <Text style={styles.value}>{friendly}</Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.monthLabel}>{formatMonthYear(selectedDate)}</Text>
 
-        <View style={styles.row}>
-          <AppButton
-            title="Pick date"
-            variant="secondary"
-            onPress={() => setShowDate(true)}
-            style={styles.flex1}
-          />
-          <AppButton
-            title="Pick time"
-            variant="secondary"
-            onPress={() => setShowTime(true)}
-            style={styles.flex1}
-          />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.dateList}
+        >
+          {dateOptions.map((item) => {
+            const selected = isSameDay(item, selectedDate);
+            return (
+              <Pressable
+                key={item.toISOString()}
+                style={[styles.dateCard, selected && styles.dateCardSelected]}
+                onPress={() => setSelectedDate(item)}
+              >
+                <Text
+                  style={[styles.dateDay, selected && styles.dateTextSelected]}
+                >
+                  {formatDayLabel(item)}
+                </Text>
+                <Text
+                  style={[styles.dateNum, selected && styles.dateTextSelected]}
+                >
+                  {item.getDate()}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        <Text style={styles.sectionTitle}>Available Time</Text>
+
+        <View style={styles.timeGrid}>
+          {BOOKING_TIME_SLOTS.map((slot) => {
+            const selected = slotKey(slot) === slotKey(selectedSlot);
+            return (
+              <Pressable
+                key={slotKey(slot)}
+                style={[styles.timeSlot, selected && styles.timeSlotSelected]}
+                onPress={() => setSelectedSlot(slot)}
+              >
+                <Text style={styles.timeSlotText}>{formatSlotLabel(slot)}</Text>
+              </Pressable>
+            );
+          })}
         </View>
+      </ScrollView>
 
-        <Text style={styles.hint}>
-          Double-booking is prevented by locking 15-minute slots in Firestore.
-        </Text>
-      </View>
-
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={styles.footerDivider} />
+        <View style={styles.priceRow}>
+          <Text style={styles.priceLabel}>Total Price</Text>
+          <Text style={styles.priceValue}>{formatPeso(price)}</Text>
+        </View>
         <AppButton
-          title="Create booking"
-          onPress={onCreate}
+          title="Continue to Payment"
+          onPress={onContinue}
           loading={submitting}
         />
-        <AppButton
-          title="Back"
-          variant="secondary"
-          onPress={() => navigation.goBack()}
-          style={{ marginTop: 10 }}
-        />
       </View>
-
-      {showDate && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          onChange={(_, selected) => {
-            setShowDate(false);
-            if (selected) {
-              const next = new Date(date);
-              next.setFullYear(selected.getFullYear());
-              next.setMonth(selected.getMonth());
-              next.setDate(selected.getDate());
-              setDate(next);
-            }
-          }}
-        />
-      )}
-
-      {showTime && (
-        <DateTimePicker
-          value={date}
-          mode="time"
-          minuteInterval={15}
-          onChange={(_, selected) => {
-            setShowTime(false);
-            if (selected) {
-              const next = new Date(date);
-              next.setHours(selected.getHours());
-              next.setMinutes(selected.getMinutes());
-              next.setSeconds(0);
-              next.setMilliseconds(0);
-              setDate(next);
-            }
-          }}
-        />
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  card: {
-    borderWidth: 1,
-    borderColor: "#EEE",
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: "#FAFAFA",
+  container: { flex: 1, backgroundColor: colors.background },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  label: { color: "#555", fontWeight: "800" },
-  value: { marginTop: 6, fontSize: 16, fontWeight: "900", color: "#111" },
-  small: { marginTop: 6, color: "#555", fontWeight: "700" },
-  row: { flexDirection: "row", gap: 10, marginTop: 12 },
-  flex1: { flex: 1 },
-  hint: { marginTop: 12, color: "#666", fontWeight: "700" },
-  footer: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 16 },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 17,
+    fontWeight: "800",
+    color: colors.text,
+  },
+  headerSpacer: { width: 40 },
+  headerDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginHorizontal: 16,
+  },
+  scroll: { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  monthLabel: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.text,
+    marginBottom: 14,
+  },
+  dateList: {
+    gap: 10,
+    paddingBottom: 24,
+  },
+  dateCard: {
+    width: 64,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    backgroundColor: colors.white,
+    marginRight: 10,
+  },
+  dateCardSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  dateDay: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  dateNum: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: colors.text,
+  },
+  dateTextSelected: {
+    color: colors.white,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.text,
+    marginBottom: 14,
+  },
+  timeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  timeSlot: {
+    width: "31%",
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    backgroundColor: colors.white,
+  },
+  timeSlotSelected: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  timeSlotText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.text,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: colors.background,
+  },
+  footerDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginBottom: 14,
+  },
+  priceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  priceLabel: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    fontWeight: "600",
+  },
+  priceValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.primary,
+  },
 });
-
